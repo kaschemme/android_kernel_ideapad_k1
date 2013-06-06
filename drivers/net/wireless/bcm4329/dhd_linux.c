@@ -345,7 +345,7 @@ char nvram_path[MOD_PARAM_PATHLEN];
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27))
 struct semaphore dhd_registration_sem;
-#define DHD_REGISTRATION_TIMEOUT  24000  /* msec : allowed time to finished dhd registration */
+#define DHD_REGISTRATION_TIMEOUT  12000  /* msec : allowed time to finished dhd registration */
 #endif /* (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)) */
 /* load firmware and/or nvram values from the filesystem */
 module_param_string(firmware_path, firmware_path, MOD_PARAM_PATHLEN, 0);
@@ -564,13 +564,7 @@ static void dhd_set_packet_filter(int value, dhd_pub_t *dhd)
 #if defined(CONFIG_HAS_EARLYSUSPEND)
 static int dhd_set_suspend(int value, dhd_pub_t *dhd)
 {
-	/* Compal-K1-Jason Dong-20120309 begin : Instead of PM-MAX mode,                      */
-        /*    we let WiFi module enters PM-FAST mode when system suspends.                        */
-	/* For the issue "Indigo cannot enter sleep when connecting to some DIR615 access points" reported in Indigo project*/
-	//int power_mode = PM_MAX;
-	int power_mode = PM_FAST;
-	/* Compal-K1-Jason Dong-20120309 end. */
-
+	int power_mode = PM_MAX;
 	/* wl_pkt_filter_enable_t	enable_parm; */
 	char iovbuf[32];
 	int bcn_li_dtim = 3;
@@ -1525,7 +1519,8 @@ dhd_dpc_thread(void *data)
 					dhd_os_wake_unlock(&dhd->pub);
 				}
 			} else {
-				dhd_bus_stop(dhd->pub.bus, TRUE);
+				if (dhd->pub.up)
+					dhd_bus_stop(dhd->pub.bus, TRUE);
 				dhd_os_wake_unlock(&dhd->pub);
 			}
 		}
@@ -2091,9 +2086,16 @@ dhd_attach(osl_t *osh, struct dhd_bus *bus, uint bus_hdrlen)
 	memcpy(netdev_priv(net), &dhd, sizeof(dhd));
 	dhd->pub.osh = osh;
 
-        // Compal-Indigo-Jason Dong-20120308 begin: assign the network interface name to bcm4329 driver
-        strncpy(iface_name,"wlan",4);
-        // Compal-Indigo-Jason Dong-20120308 end
+	mutex_init(&dhd->proto_sem);
+	mutex_init(&dhd->sdsem);
+	/* Initialize other structure content */
+	init_waitqueue_head(&dhd->ioctl_resp_wait);
+	init_waitqueue_head(&dhd->ctrl_wait);
+
+	/* Initialize the spinlocks */
+	spin_lock_init(&dhd->sdlock);
+	spin_lock_init(&dhd->txqlock);
+	spin_lock_init(&dhd->dhd_lock);
 
 	/* Set network interface name if it was provided as module parameter */
 	if (iface_name[0]) {
@@ -2115,16 +2117,6 @@ dhd_attach(osl_t *osh, struct dhd_bus *bus, uint bus_hdrlen)
 #else
 	net->netdev_ops = NULL;
 #endif
-
-	mutex_init(&dhd->proto_sem);
-	/* Initialize other structure content */
-	init_waitqueue_head(&dhd->ioctl_resp_wait);
-	init_waitqueue_head(&dhd->ctrl_wait);
-
-	/* Initialize the spinlocks */
-	spin_lock_init(&dhd->sdlock);
-	spin_lock_init(&dhd->txqlock);
-	spin_lock_init(&dhd->dhd_lock);
 
 	/* Initialize Wakelock stuff */
 	spin_lock_init(&dhd->wl_lock);
@@ -2163,7 +2155,6 @@ dhd_attach(osl_t *osh, struct dhd_bus *bus, uint bus_hdrlen)
 	dhd->timer.function = dhd_watchdog;
 
 	/* Initialize thread based operation and lock */
-	mutex_init(&dhd->sdsem);
 	if ((dhd_watchdog_prio >= 0) && (dhd_dpc_prio >= 0)) {
 		dhd->threads_only = TRUE;
 	}
@@ -2207,10 +2198,6 @@ dhd_attach(osl_t *osh, struct dhd_bus *bus, uint bus_hdrlen)
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)) && defined(CONFIG_PM_SLEEP)
 	register_pm_notifier(&dhd_sleep_pm_notifier);
 #endif /*  (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)) && defined(CONFIG_PM_SLEEP) */
-
-#ifdef CONFIG_HAS_WAKELOCK
-	wake_lock_init(&dhd->pub.wow_wakelock, WAKE_LOCK_SUSPEND, "wow_wake_lock");
-#endif
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
 	dhd->early_suspend.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN + 20;
@@ -2616,10 +2603,6 @@ dhd_detach(dhd_pub_t *dhdp)
 
 			if (dhdp->prot)
 				dhd_prot_detach(dhdp);
-
-#ifdef CONFIG_HAS_WAKELOCK
-			wake_lock_destroy(&dhdp->wow_wakelock);
-#endif
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)) && defined(CONFIG_PM_SLEEP)
 			unregister_pm_notifier(&dhd_sleep_pm_notifier);
