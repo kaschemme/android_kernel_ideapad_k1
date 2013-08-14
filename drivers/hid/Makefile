@@ -8,6 +8,7 @@ ifdef CONFIG_DEBUG_FS
 endif
 
 obj-$(CONFIG_HID)		+= hid.o
+obj-$(CONFIG_HID)		+= uhid.o
 
 hid-$(CONFIG_HIDRAW)		+= hidraw.o
 
