@@ -95,7 +95,7 @@ typedef const struct si_pub  si_t;
 #define ENABLE_ACTIVE_PASSIVE_SCAN_SUPPRESS  1
 
 #if defined(SOFTAP)
-#define WL_SOFTAP(x) printk x
+#define WL_SOFTAP(x) printf x
 static struct net_device *priv_dev;
 static bool ap_cfg_running = FALSE;
 bool ap_fw_loaded = FALSE;
@@ -4339,6 +4339,7 @@ wl_iw_get_essid(
 	if (!extra)
 		return -EINVAL;
 
+	memset(&ssid, 0, sizeof(ssid));
 	if ((error = dev_wlc_ioctl(dev, WLC_GET_SSID, &ssid, sizeof(ssid)))) {
 		WL_ERROR(("Error getting the SSID\n"));
 		return error;

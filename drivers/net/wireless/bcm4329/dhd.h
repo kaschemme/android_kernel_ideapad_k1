@@ -148,7 +148,7 @@ typedef struct dhd_pub {
 
 	ulong rx_readahead_cnt;	/* Number of packets where header read-ahead was used. */
 	ulong tx_realloc;	/* Number of tx packets we had to realloc for headroom */
-	ulong fc_packets;	/* Number of flow control pkts recvd */
+	ulong fc_packets;       /* Number of flow control pkts recvd */
 
 	/* Last error return */
 	int bcmerror;
