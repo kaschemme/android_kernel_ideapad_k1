@@ -80,7 +80,8 @@ static struct dvfs_rail tegra2_dvfs_rail_vdd_aon = {
 #endif
 };
 
-/* vdd_core and vdd_aon must be 25 mV higher than vdd_cpu */
+/* vdd_core and vdd_aon must be 50 mV higher than vdd_cpu */
+/* Thank you XDA CazeW for finding this difference */
 static int tegra2_dvfs_rel_vdd_cpu_vdd_core(struct dvfs_rail *vdd_cpu,
 	struct dvfs_rail *vdd_core)
 {
@@ -105,13 +106,13 @@ static int tegra2_dvfs_rel_vdd_core_vdd_aon(struct dvfs_rail *vdd_core,
 
 static struct dvfs_relationship tegra2_dvfs_relationships[] = {
 	{
-		/* vdd_core must be 50 mV higher than vdd_cpu */
+		/* vdd_core must be 120 mV higher than vdd_cpu */
 		.from = &tegra2_dvfs_rail_vdd_cpu,
 		.to = &tegra2_dvfs_rail_vdd_core,
 		.solve = tegra2_dvfs_rel_vdd_cpu_vdd_core,
 	},
 	{
-		/* vdd_aon must be 50 mV higher than vdd_cpu */
+		/* vdd_aon must be 120 mV higher than vdd_cpu */
 		.from = &tegra2_dvfs_rail_vdd_cpu,
 		.to = &tegra2_dvfs_rail_vdd_aon,
 		.solve = tegra2_dvfs_rel_vdd_cpu_vdd_core,
@@ -161,10 +162,10 @@ static struct dvfs dvfs_init[] = {
 	CPU_DVFS("cpu", 0, 2, MHZ, 494, 494, 494, 675, 675, 817,  817,  922,  922,  1000),
 	CPU_DVFS("cpu", 0, 3, MHZ, 730, 760, 845, 845, 940, 1000),
 
-	CPU_DVFS("cpu", 1, 0, MHZ, 380, 380, 503, 503, 655,  798,     960,  1000, 1200, 1400, 1504, 1604),
-	CPU_DVFS("cpu", 1, 1, MHZ, 216, 312, 456, 608, 760, 912,  1000,  1200,   1400, 1504, 1604),
-	CPU_DVFS("cpu", 1, 2, MHZ, 598, 598, 750, 750,  893,  1000, 1200, 1400, 1504, 1604),
-	CPU_DVFS("cpu", 1, 3, MHZ, 730, 760, 845,  940, 1000, 1200, 1400, 1504, 1604),
+	CPU_DVFS("cpu", 1, 0, MHZ, 380, 380, 503, 503, 655,  798,     960,  1000, 1200, 1400),
+	CPU_DVFS("cpu", 1, 1, MHZ, 216, 312, 456, 608, 760, 912,  1000,  1200,   1400),
+	CPU_DVFS("cpu", 1, 2, MHZ, 598, 598, 750, 750,  893,  1000, 1200, 1400),
+	CPU_DVFS("cpu", 1, 3, MHZ, 730, 760, 845,  940, 1000, 1200, 1400),
 
 	CPU_DVFS("cpu", 2, 0, MHZ,   0,   0,   0,   0, 655, 655,  798,  798,  902,  902,  960,  1000, 1100, 1100, 1200),
 	CPU_DVFS("cpu", 2, 1, MHZ,   0,   0,   0,   0, 655, 760,  798,  798,  950,  950,  1015, 1015, 1100, 1200),
@@ -213,7 +214,6 @@ static struct dvfs dvfs_init[] = {
 	 * increased depending on tegra2 sku). Use the worst case value for
 	 * other clocks for now.
 	 */
-
 	CORE_DVFS("host1x",  -1, 1, KHZ, 104500, 133000, 166000, 166000, 166000, 166000, 166000, 166000, 166000, 166000),
 	CORE_DVFS("epp",     -1, 1, KHZ, 133000, 171000, 247000, 300000, 425000, 425000, 425000, 425000, 425000, 425000),
 	CORE_DVFS("2d",      -1, 1, KHZ, 133000, 171000, 247000, 300000, 425000, 425000, 425000, 425000, 425000, 425000),
@@ -241,7 +241,6 @@ static struct dvfs dvfs_init[] = {
 	CORE_DVFS("vde",      3, 1, KHZ, 171000, 218500, 300000, 300000, 300000, 300000, 300000, 300000, 300000, 300000),
 	/* What is this? */
 	CORE_DVFS("NVRM_DEVID_CLK_SRC", -1, 1, MHZ, 480, 600, 800, 1067, 1067, 1067, 1067, 1067, 1067, 1067),
-
 };
 
 int tegra_dvfs_disable_core_set(const char *arg, const struct kernel_param *kp)

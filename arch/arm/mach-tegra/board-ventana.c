@@ -741,7 +741,8 @@ static void __init register_spi_ofn_devices(void)
 		pr_err("%s: spi_register_board_info returned error\n", __func__);
 	}
 }
-//--
+
+extern void bluesleep_setup_uart_port(struct platform_device *uart_dev);
 
 static void __init tegra_ventana_init(void)
 {
