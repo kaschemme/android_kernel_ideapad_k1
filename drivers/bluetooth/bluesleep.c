@@ -829,7 +829,7 @@ static int __init bluesleep_init(void)
 	if (bsi == NULL)
 		return 0;
 
-#if ! BT_BLUEDROID_SUPPORT
+#if !BT_BLUEDROID_SUPPORT
 	bluesleep_hdev = NULL;
 #endif
 
